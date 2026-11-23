@@ -1,0 +1,418 @@
+{
+  "info": {
+    "_postman_id": "6e8c9e8d-458b-4f86-9a90-4d9cf2d3ab70",
+    "name": "Product Inventory Management API - Set C",
+    "description": "Tests all six required Set C endpoints plus invalid IDs, invalid bodies, missing filters, and empty filter results. Run the collection in order against a freshly started local server.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "01 - GET all products",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/products",
+        "description": "Expected: HTTP 200 and the three initial product records."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status is 200 OK\", () => pm.response.to.have.status(200));",
+              "pm.test(\"Returns an array with the three initial products\", () => { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); pm.expect(data.length).to.be.at.least(3); });",
+              "pm.test(\"Initial product IDs are present\", () => { const ids = pm.response.json().map(p => p.id); [301, 302, 303].forEach(id => pm.expect(ids).to.include(id)); });"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "02 - POST valid product",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/products",
+        "description": "Expected: HTTP 201. The application generates the ID.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Water Bottle\",\n  \"category\": \"Accessories\",\n  \"price\": 299,\n  \"quantity\": 40,\n  \"inStock\": true\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status is 201 Created\", () => pm.response.to.have.status(201));",
+              "pm.test(\"Created product has the expected fields\", () => { const data = pm.response.json(); pm.expect(data.product.id).to.be.a(\"number\"); pm.expect(data.product.name).to.eql(\"Water Bottle\"); pm.expect(data.product.category).to.eql(\"Accessories\"); pm.expect(data.product.price).to.eql(299); pm.expect(data.product.quantity).to.eql(40); pm.expect(data.product.inStock).to.eql(true); pm.collectionVariables.set(\"createdProductId\", data.product.id); });"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "03 - POST invalid product body",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/products",
+        "description": "Expected: HTTP 400 because price is a string, not a JSON number.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Invalid Bottle\",\n  \"category\": \"Accessories\",\n  \"price\": \"299\",\n  \"quantity\": 40,\n  \"inStock\": true\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status is 400 Bad Request\", () => pm.response.to.have.status(400));",
+              "pm.test(\"Validation errors are returned\", () => { const data = pm.response.json(); pm.expect(data.message).to.eql(\"Invalid product data.\"); pm.expect(data.errors).to.be.an(\"array\").that.is.not.empty; });"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "04 - GET product by valid ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/products/301",
+        "description": "Expected: HTTP 200 and Wireless Mouse."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status is 200 OK\", () => pm.response.to.have.status(200));",
+              "pm.test(\"Returns Wireless Mouse\", () => { const data = pm.response.json(); pm.expect(data.id).to.eql(301); pm.expect(data.name).to.eql(\"Wireless Mouse\"); });"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "05 - GET product with invalid ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/products/not-a-number",
+        "description": "Expected: HTTP 400 because the route ID is not a positive integer."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status is 400 Bad Request\", () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "06 - GET product with missing ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/products/99999",
+        "description": "Expected: HTTP 404 because this numeric ID does not exist."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status is 404 Not Found\", () => pm.response.to.have.status(404));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "07 - PUT valid product update",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/products/301",
+        "description": "Expected: HTTP 200. PUT replaces all editable fields; the ID remains 301.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Wireless Mouse\",\n  \"category\": \"Electronics\",\n  \"price\": 749,\n  \"quantity\": 20,\n  \"inStock\": true\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status is 200 OK\", () => pm.response.to.have.status(200));",
+              "pm.test(\"Updated product is returned\", () => { const data = pm.response.json(); pm.expect(data.product.id).to.eql(301); pm.expect(data.product.price).to.eql(749); pm.expect(data.product.quantity).to.eql(20); });"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "08 - GET product after update",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/products/301",
+        "description": "Expected: HTTP 200 and the updated price of 749."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status is 200 OK\", () => pm.response.to.have.status(200));",
+              "pm.test(\"Updated values were saved in memory\", () => { const data = pm.response.json(); pm.expect(data.price).to.eql(749); pm.expect(data.quantity).to.eql(20); });"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "09 - PUT invalid product body",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/products/301",
+        "description": "Expected: HTTP 400 because quantity is a string, not a JSON number.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Wireless Mouse\",\n  \"category\": \"Electronics\",\n  \"price\": 749,\n  \"quantity\": \"20\",\n  \"inStock\": true\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status is 400 Bad Request\", () => pm.response.to.have.status(400));",
+              "pm.test(\"Validation error is returned\", () => pm.expect(pm.response.json().errors).to.be.an(\"array\").that.is.not.empty);"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "10 - PUT product with missing ID",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/products/99999",
+        "description": "Expected: HTTP 404 because the numeric ID does not exist.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Water Bottle\",\n  \"category\": \"Accessories\",\n  \"price\": 299,\n  \"quantity\": 40,\n  \"inStock\": true\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status is 404 Not Found\", () => pm.response.to.have.status(404));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "11 - DELETE existing product",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{baseUrl}}/api/products/303",
+        "description": "Expected: HTTP 200 and the deleted USB Keyboard record."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status is 200 OK\", () => pm.response.to.have.status(200));",
+              "pm.test(\"Deleted product is USB Keyboard\", () => { const data = pm.response.json(); pm.expect(data.message).to.eql(\"Product deleted successfully.\"); pm.expect(data.product.id).to.eql(303); });"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "12 - DELETE missing product",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{baseUrl}}/api/products/99999",
+        "description": "Expected: HTTP 404 because the product does not exist."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status is 404 Not Found\", () => pm.response.to.have.status(404));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "13 - GET filter (case-insensitive match)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/products/filter?category=eLeCtRoNiCs",
+        "description": "Expected: HTTP 200 and products in the Electronics category. Matching is case-insensitive."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status is 200 OK\", () => pm.response.to.have.status(200));",
+              "pm.test(\"Returns only Electronics products\", () => { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\").that.is.not.empty; data.forEach(product => pm.expect(product.category.toLowerCase()).to.eql(\"electronics\")); });"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "14 - GET filter (no matches)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/products/filter?category=Furniture",
+        "description": "Expected: HTTP 200 and an empty JSON array."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status is 200 OK\", () => pm.response.to.have.status(200));",
+              "pm.test(\"No-match response is an empty array\", () => pm.expect(pm.response.json()).to.eql([]));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "15 - GET filter (missing category)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/products/filter",
+        "description": "Expected: HTTP 400 because the category query parameter is missing."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status is 400 Bad Request\", () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "createdProductId",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}
